@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+openai
+pinecone
+supabase
+pydantic
+python-dotenv
+requests
+email-validator

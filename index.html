@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloneCalls — Your AI Clone Picks Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0a07;
+    --bg2: #111009;
+    --bg3: #1a1812;
+    --amber: #e8a020;
+    --amber-dim: #a06b0e;
+    --amber-glow: #f0b84080;
+    --amber-pale: #2a1f08;
+    --green: #2ec27e;
+    --green-dim: #1a7a4d;
+    --red: #d94040;
+    --text: #f0ead8;
+    --text-muted: #8a7d60;
+    --text-dim: #4a4230;
+    --border: #2a2518;
+    --border-amber: #3a2e14;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11,10,7,0.95);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--amber);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .nav-links { display: flex; gap: 6px; align-items: center; }
+
+  .nav-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .nav-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .nav-btn.primary { border-color: var(--amber); color: var(--bg); background: var(--amber); font-weight: 500; }
+  .nav-btn.primary:hover { background: #f0b840; }
+
+  #user-indicator {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  .page { display: none; min-height: 100vh; padding-top: 60px; }
+  .page.active { display: block; }
+
+  /* ===== LANDING ===== */
+  .hero {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 80px 40px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.5;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 0%, transparent 100%);
+  }
+
+  .hero-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    padding: 6px 16px;
+    border: 1px solid var(--border-amber);
+    border-radius: 2px;
+    background: var(--amber-pale);
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -3px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.1s ease both;
+    margin-bottom: 28px;
+  }
+
+  .hero-title .line-dim { color: var(--text-dim); }
+  .hero-title .line-amber { color: var(--amber); }
+
+  .hero-sub {
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 480px;
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.2s ease both;
+    margin-bottom: 44px;
+    font-weight: 300;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.3s ease both;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-big {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 14px 32px;
+    letter-spacing: 1px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+  .btn-big.amber { background: var(--amber); color: var(--bg); }
+  .btn-big.amber:hover { background: #f0b840; transform: translateY(-1px); }
+  .btn-big.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+  .btn-big.ghost:hover { border-color: var(--amber); color: var(--amber); }
+
+  .ticker-section {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+    background: var(--bg2);
+    overflow: hidden;
+  }
+
+  .hero-ticker { display: flex; gap: 60px; overflow: hidden; mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent); }
+  .ticker-inner { display: flex; gap: 60px; animation: ticker 30s linear infinite; flex-shrink: 0; }
+  .ticker-item { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 2px; white-space: nowrap; text-transform: uppercase; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .features-section { padding: 100px 40px; max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    margin-bottom: 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+
+  .feature-card { background: var(--bg); padding: 40px 32px; position: relative; overflow: hidden; transition: background 0.3s; }
+  .feature-card:hover { background: var(--bg3); }
+  .feature-card::before { content: attr(data-num); position: absolute; top: 20px; right: 24px; font-family: var(--font-mono); font-size: 48px; font-weight: 300; color: var(--text-dim); opacity: 0.4; line-height: 1; }
+
+  .feature-icon { width: 36px; height: 36px; border: 1px solid var(--border-amber); border-radius: 2px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; background: var(--amber-pale); }
+  .feature-icon svg { width: 16px; height: 16px; stroke: var(--amber); fill: none; stroke-width: 1.5; }
+  .feature-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-bottom: 12px; line-height: 1.2; }
+  .feature-desc { font-size: 14px; color: var(--text-muted); line-height: 1.7; font-weight: 300; }
+
+  .how-section { padding: 100px 40px; background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .how-inner { max-width: 1100px; margin: 0 auto; }
+  .how-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 48px; position: relative; }
+  .how-steps::before { content: ''; position: absolute; top: 20px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, var(--amber-dim), var(--amber-dim), transparent); }
+  .how-step { padding: 0 24px; text-align: center; }
+  .step-num { width: 40px; height: 40px; border-radius: 50%; background: var(--amber-pale); border: 1px solid var(--border-amber); color: var(--amber); font-family: var(--font-mono); font-size: 13px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; z-index: 1; }
+  .step-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .step-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; font-weight: 300; }
+
+  /* ===== AUTH MODAL ===== */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border-amber); border-radius: 4px; width: 420px; max-width: 90vw; padding: 40px; position: relative; animation: fadeUp 0.3s ease; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 18px; padding: 4px 8px; transition: color 0.2s; }
+  .modal-close:hover { color: var(--text); }
+  .modal-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+  .modal-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 28px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+  .form-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 10px 14px; color: var(--text); font-family: var(--font-mono); font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--amber-dim); }
+  .form-input::placeholder { color: var(--text-dim); }
+  .form-submit { width: 100%; background: var(--amber); border: none; border-radius: 3px; padding: 13px; color: var(--bg); font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; margin-top: 8px; }
+  .form-submit:hover { background: #f0b840; }
+  .form-toggle { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+  .form-toggle a { color: var(--amber); cursor: pointer; text-decoration: none; }
+  .msg { padding: 10px 14px; border-radius: 3px; font-family: var(--font-mono); font-size: 11px; margin-top: 12px; }
+  .msg.error { background: rgba(217,64,64,0.1); border: 1px solid rgba(217,64,64,0.3); color: #e06060; }
+  .msg.success { background: rgba(46,194,126,0.1); border: 1px solid rgba(46,194,126,0.3); color: var(--green); }
+
+  /* ===== DASHBOARD ===== */
+  .dash-header { padding: 48px 60px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-end; }
+  .dash-title { font-family: var(--font-display); font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
+  .dash-breadcrumb { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+  .dash-breadcrumb span { color: var(--amber); }
+  .page-content { max-width: 800px; margin: 0 auto; padding: 48px 40px; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 32px; margin-bottom: 20px; }
+  .card-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .card-title .badge { font-family: var(--font-mono); font-size: 9px; padding: 3px 8px; background: var(--amber-pale); border: 1px solid var(--border-amber); color: var(--amber); border-radius: 2px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .form-textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 14px; color: var(--text); font-family: var(--font-mono); font-size: 12px; line-height: 1.7; outline: none; resize: vertical; min-height: 160px; transition: border-color 0.2s; }
+  .form-textarea:focus { border-color: var(--amber-dim); }
+  .form-textarea::placeholder { color: var(--text-dim); }
+  .char-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-align: right; margin-top: 6px; }
+
+  .status-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; font-family: var(--font-mono); font-size: 12px; }
+  .status-indicator { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .status-indicator.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-indicator.inactive { background: var(--text-dim); }
+  .status-indicator.checking { background: var(--amber); animation: pulse 1s infinite; }
+  .status-info { flex: 1; }
+  .status-persona { color: var(--text); font-weight: 500; margin-bottom: 2px; }
+  .status-time { color: var(--text-muted); font-size: 11px; }
+
+  .audio-response { display: none; margin-top: 20px; background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 16px 20px; align-items: center; gap: 14px; }
+  .audio-response.visible { display: flex; }
+  .play-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--amber); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+  .play-btn:hover { background: #f0b840; }
+  .play-btn svg { width: 14px; height: 14px; fill: var(--bg); margin-left: 2px; }
+  .audio-label { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .audio-label strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 2px; }
+
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+
+  .loader { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-action { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 1px; padding: 12px 24px; border-radius: 3px; cursor: pointer; transition: all 0.2s; border: none; flex: 1; }
+  .btn-action.amber { background: var(--amber); color: var(--bg); }
+  .btn-action.amber:hover { background: #f0b840; }
+  .btn-action.amber:disabled { background: var(--amber-dim); opacity: 0.5; cursor: not-allowed; }
+  .btn-action.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+  .btn-action.ghost:hover { border-color: var(--amber-dim); color: var(--amber); }
+
+  .page-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 60px; background: var(--bg2); }
+  .page-tab { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; padding: 16px 20px; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; text-transform: uppercase; }
+  .page-tab:hover { color: var(--text-muted); }
+  .page-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  .transcript { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); line-height: 1.8; min-height: 80px; display: none; margin-top: 16px; }
+  .transcript.visible { display: block; }
+  .transcript .speaker { color: var(--amber); font-weight: 500; }
+
+  /* ===== CALL-SPECIFIC ===== */
+  .target-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .target-row .form-input { flex: 1; }
+
+  /* MIC BUTTON */
+  .mic-wrap { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 32px 0 16px; }
+
+  .mic-btn {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    border: 2px solid var(--border-amber);
+    background: var(--amber-pale);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+    position: relative;
+  }
+
+  .mic-btn:hover { border-color: var(--amber); background: #3a2a0a; }
+
+  .mic-btn.recording {
+    background: rgba(217,64,64,0.15);
+    border-color: var(--red);
+    animation: mic-pulse 1.2s ease-in-out infinite;
+  }
+
+  .mic-btn svg { width: 32px; height: 32px; stroke: var(--amber); fill: none; stroke-width: 1.5; transition: stroke 0.25s; }
+  .mic-btn.recording svg { stroke: var(--red); }
+
+  .mic-btn.recording::before,
+  .mic-btn.recording::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--red);
+    opacity: 0;
+    animation: ripple 1.2s ease-out infinite;
+  }
+  .mic-btn.recording::after { animation-delay: 0.4s; }
+
+  @keyframes ripple {
+    0%   { width: 88px; height: 88px; opacity: 0.6; }
+    100% { width: 140px; height: 140px; opacity: 0; }
+  }
+
+  @keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217,64,64,0.3); }
+    50%       { box-shadow: 0 0 0 12px rgba(217,64,64,0); }
+  }
+
+  .mic-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .mic-label.recording { color: var(--red); }
+
+  .waveform { display: none; align-items: center; gap: 3px; height: 24px; }
+  .waveform.visible { display: flex; }
+  .waveform span {
+    display: block;
+    width: 3px;
+    background: var(--red);
+    border-radius: 2px;
+    animation: wave 0.8s ease-in-out infinite alternate;
+  }
+  .waveform span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+  .waveform span:nth-child(2) { height: 18px; animation-delay: 0.1s; }
+  .waveform span:nth-child(3) { height: 12px; animation-delay: 0.2s; }
+  .waveform span:nth-child(4) { height: 22px; animation-delay: 0.05s; }
+  .waveform span:nth-child(5) { height: 14px; animation-delay: 0.15s; }
+  .waveform span:nth-child(6) { height: 20px; animation-delay: 0.25s; }
+  .waveform span:nth-child(7) { height: 10px; animation-delay: 0.1s; }
+  @keyframes wave { from { transform: scaleY(0.5); } to { transform: scaleY(1.2); } }
+
+  @media (max-width: 700px) {
+    nav { padding: 0 20px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .how-steps { grid-template-columns: 1fr 1fr; }
+    .how-steps::before { display: none; }
+    .dash-header { padding: 32px 20px 24px; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .page-content { padding: 32px 20px; }
+    .page-tabs { padding: 0 20px; }
+    .target-row { flex-direction: column; }
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="showPage('landing')">
+    <div class="dot"></div> CloneCalls
+  </div>
+  <div class="nav-links" id="nav-auth">
+    <button class="nav-btn" onclick="openAuth('login')">LOG IN</button>
+    <button class="nav-btn primary" onclick="openAuth('signup')">GET STARTED</button>
+  </div>
+  <div id="user-indicator">
+    <div class="online-dot"></div>
+    <span id="user-email-display"></span>
+    <button class="nav-btn" style="margin-left:8px" onclick="logout()">SIGN OUT</button>
+  </div>
+</nav>
+
+<!-- =================== LANDING =================== -->
+<div id="page-landing" class="page active">
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-label">// AI-POWERED CALL ROUTING — V1.0</div>
+    <h1 class="hero-title">
+      <span class="line-dim">WHEN YOU</span><br>
+      <span class="line-amber">CAN'T PICK UP</span><br>
+      <span class="line-dim">YOUR CLONE DOES</span>
+    </h1>
+    <p class="hero-sub">Brief your AI clone once. It answers calls, delivers your context, and speaks in your voice — so you're always reachable.</p>
+    <div class="hero-ctas">
+      <button class="btn-big amber" onclick="openAuth('signup')">CREATE YOUR CLONE</button>
+      <button class="btn-big ghost" onclick="openAuth('login')">SIGN IN →</button>
+    </div>
+  </section>
+
+  <div class="ticker-section">
+    <div class="hero-ticker">
+      <div class="ticker-inner">
+        <span class="ticker-item">VOICE SYNTHESIS</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">MEMORY VAULT</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">SECURE AUTH</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">AI BRIEFING</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">CALL ROUTING</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">PII SCRUBBING</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">VOICE SYNTHESIS</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">MEMORY VAULT</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">SECURE AUTH</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">AI BRIEFING</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">CALL ROUTING</span><span class="ticker-item">✦</span>
+        <span class="ticker-item">PII SCRUBBING</span><span class="ticker-item">✦</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="features-section">
+    <div class="section-label">CAPABILITIES</div>
+    <div class="features-grid">
+      <div class="feature-card" data-num="01">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg></div>
+        <div class="feature-title">Memory Vault</div>
+        <p class="feature-desc">Brief your clone with context, schedules, and instructions. Your data is PII-scrubbed and stored in a semantic vector database.</p>
+      </div>
+      <div class="feature-card" data-num="02">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 0113.07 2a2 2 0 012 1.84V7.11"/><path d="M15 2h7v7"/><line x1="22" y1="2" x2="15" y2="9"/></svg></div>
+        <div class="feature-title">Voice Synthesis</div>
+        <p class="feature-desc">ElevenLabs integration converts every AI response into lifelike speech — your clone sounds exactly how you want it to.</p>
+      </div>
+      <div class="feature-card" data-num="03">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="feature-title">Secure by Default</div>
+        <p class="feature-desc">Supabase auth tokens, automatic PII scrubbing (cards, SSNs, phones), and per-user namespace isolation in Pinecone.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-section">
+    <div class="how-inner">
+      <div class="section-label">HOW IT WORKS</div>
+      <div class="how-steps">
+        <div class="how-step"><div class="step-num">01</div><div class="step-title">Create Account</div><p class="step-desc">Sign up securely. Your identity is isolated — no shared memory.</p></div>
+        <div class="how-step"><div class="step-num">02</div><div class="step-title">Brief Your Clone</div><p class="step-desc">Type what your clone needs to know. Stored against your account email.</p></div>
+        <div class="how-step"><div class="step-num">03</div><div class="step-title">Check Status</div><p class="step-desc">Enter anyone's email to see if their clone is briefed and ready.</p></div>
+        <div class="how-step"><div class="step-num">04</div><div class="step-title">Simulate Call</div><p class="step-desc">Your clone answers in voice using only the briefed memories.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding: 40px 60px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+    <div class="nav-logo" style="cursor:default"><div class="dot"></div> CloneCalls</div>
+    <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px;">AI-POWERED CALL ROUTING © 2025</span>
+  </footer>
+</div>
+
+<!-- =================== LEAVE A CLONE =================== -->
+<div id="page-clone" class="page">
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="showPage('clone')">LEAVE A CLONE</div>
+    <div class="page-tab" onclick="showPage('call')">MAKE A CALL</div>
+  </div>
+  <div class="dash-header">
+    <div>
+      <div class="dash-breadcrumb">CloneCalls / <span>Leave a Clone</span></div>
+      <div class="dash-title">Brief Your Clone</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="card">
+      <div class="card-title">
+        Memory Upload
+        <span class="badge">SECURE</span>
+      </div>
+
+      <div id="vault-owner-strip" style="display:none; align-items:center; gap:10px; margin-bottom:20px; padding:10px 14px; background:var(--bg3); border:1px solid var(--border-amber); border-radius:3px;">
+        <div class="status-indicator active"></div>
+        <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">STORING AS</span>
+        <span id="vault-owner-email" style="font-family:var(--font-mono); font-size:11px; color:var(--amber);"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">BRIEFING TEXT</label>
+        <textarea class="form-textarea" id="briefing-text"
+          placeholder="e.g. I'm in a meeting until 3pm. My flight to Dubai is at 6pm. Tell anyone who calls that I'll get back to them tomorrow morning..."
+          oninput="document.getElementById('char-count').textContent = this.value.length + ' / 1000 chars'"></textarea>
+        <div class="char-count" id="char-count">0 / 1000 chars</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ALLOWED CALLER (EMAIL)</label>
+        <input type="email" class="form-input" id="allowed-caller" placeholder="dad@example.com">
+      </div>
+
+      <div id="clone-msg"></div>
+
+      <div class="btn-row">
+        <button class="btn-action amber" id="upload-btn" onclick="uploadBriefing()">UPLOAD BRIEFING →</button>
+        <button class="btn-action ghost" onclick="document.getElementById('briefing-text').value=''; document.getElementById('char-count').textContent='0 / 1000 chars'">CLEAR</button>
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(46,194,126,0.03); border-color: rgba(46,194,126,0.1);">
+      <div class="card-title">How Memories Work</div>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.8; font-family: var(--font-mono);">
+        Your text is <span style="color: var(--amber)">PII-scrubbed</span> (credit cards, SSNs, phone numbers removed), then stored as a vector embedding under your account email. Only callers who know your email can reach your clone. Each briefing is timestamped and retrieved semantically — the most relevant context answers each caller's question.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- =================== MAKE A CALL =================== -->
+<div id="page-call" class="page">
+  <div class="page-tabs">
+    <div class="page-tab" onclick="showPage('clone')">LEAVE A CLONE</div>
+    <div class="page-tab active" onclick="showPage('call')">MAKE A CALL</div>
+  </div>
+  <div class="dash-header">
+    <div>
+      <div class="dash-breadcrumb">CloneCalls / <span>Make a Call</span></div>
+      <div class="dash-title">Voice Call Simulator</div>
+    </div>
+  </div>
+  <div class="page-content">
+
+    <div class="card">
+      <div class="card-title">
+        Clone Status Check
+        <span class="badge">LIVE</span>
+      </div>
+      <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
+        Enter the email of the person whose clone you want to call.
+      </p>
+      <div class="target-row">
+        <input type="email" class="form-input" id="status-email" placeholder="target@example.com">
+        <button class="btn-action amber" style="flex: 0 0 auto;" onclick="checkStatus()">CHECK</button>
+      </div>
+      <div id="status-result"></div>
+    </div>
+
+    <div class="card" id="voice-call-card" style="display:none;">
+      <div class="card-title">
+        Voice Call
+        <span class="badge">MICROPHONE</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--bg3); border:1px solid var(--border-amber); border-radius:3px; margin-bottom:20px;">
+        <div style="width:36px; height:36px; border-radius:50%; background:var(--amber-pale); border:1px solid var(--border-amber); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:14px; font-weight:800; color:var(--amber);" id="callee-avatar">?</div>
+        <div>
+          <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:2px;">Calling</div>
+          <div style="font-family:var(--font-mono); font-size:13px; color:var(--text);" id="callee-email-display">—</div>
+        </div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+          <div class="status-indicator active"></div>
+          <span style="font-family:var(--font-mono); font-size:10px; color:var(--green); letter-spacing:1px;">CLONE READY</span>
+        </div>
+      </div>
+
+      <p style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:0.5px; margin-bottom:24px;">
+        CALLING AS: <span id="caller-identity" style="color:var(--amber);"></span>
+      </p>
+
+      <div class="mic-wrap">
+        <div class="waveform" id="waveform">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <button class="mic-btn" id="mic-btn" onclick="toggleRecording()">
+          <svg id="mic-icon" viewBox="0 0 24 24">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10a7 7 0 0014 0"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+          </svg>
+          <svg id="stop-icon" viewBox="0 0 24 24" style="display:none;">
+            <rect x="5" y="5" width="14" height="14" rx="2" style="fill:var(--red); stroke:none;"/>
+          </svg>
+        </button>
+
+        <div class="mic-label" id="mic-label">TAP TO SPEAK</div>
+      </div>
+
+      <div id="call-msg" style="margin-top:8px;"></div>
+
+      <div class="audio-response" id="audio-response">
+        <button class="play-btn" id="play-btn" onclick="playAudio()">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <div class="audio-label">
+          <strong id="audio-title">Clone Response</strong>
+          <span id="audio-status">Tap play to hear response</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =================== AUTH MODAL =================== -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+
+    <div id="login-form">
+      <div class="modal-title">Sign In</div>
+      <div class="modal-sub">// ACCESS YOUR CLONE NETWORK</div>
+      <div class="form-group">
+        <label class="form-label">EMAIL</label>
+        <input type="email" class="form-input" id="login-email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">PASSWORD</label>
+        <input type="password" class="form-input" id="login-password" placeholder="••••••••">
+      </div>
+      <div id="login-msg"></div>
+      <button class="form-submit" onclick="doLogin()">SIGN IN →</button>
+      <div class="form-toggle">No account? <a onclick="switchAuth('signup')">Create one</a></div>
+    </div>
+
+    <div id="signup-form" style="display:none">
+      <div class="modal-title">Create Account</div>
+      <div class="modal-sub">// INITIALISE YOUR CLONE PROFILE</div>
+      <div class="form-group">
+        <label class="form-label">FULL NAME</label>
+        <input type="text" class="form-input" id="signup-name" placeholder="Your Name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">EMAIL</label>
+        <input type="email" class="form-input" id="signup-email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">PASSWORD</label>
+        <input type="password" class="form-input" id="signup-password" placeholder="••••••••">
+      </div>
+      <div id="signup-msg"></div>
+      <button class="form-submit" onclick="doSignup()">CREATE ACCOUNT →</button>
+      <div class="form-toggle">Already have an account? <a onclick="switchAuth('login')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+
+  let authToken   = localStorage.getItem('cc_token') || null;
+  let userEmail   = localStorage.getItem('cc_email') || null;
+  let calleeEmail = '';
+  let audioUrl    = null;
+  let audioPlayer = null;
+
+  let mediaRecorder  = null;
+  let audioChunks    = [];
+  let isRecording    = false;
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (authToken) setLoggedIn(userEmail);
+  });
+
+  // ===== PAGE ROUTING =====
+  function showPage(name) {
+    if ((name === 'clone' || name === 'call') && !authToken) { openAuth('login'); return; }
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.page-tab').forEach(t => {
+      t.classList.remove('active');
+      if ((name === 'clone' && t.textContent.includes('CLONE')) ||
+          (name === 'call'  && t.textContent.includes('CALL')))  t.classList.add('active');
+    });
+    if (name === 'clone' && userEmail) {
+      document.getElementById('vault-owner-email').textContent = userEmail;
+      document.getElementById('vault-owner-strip').style.display = 'flex';
+    }
+    if (name === 'call' && userEmail) {
+      document.getElementById('caller-identity').textContent = userEmail;
+    }
+  }
+
+  // ===== AUTH =====
+  function openAuth(mode)  { document.getElementById('auth-modal').classList.add('open'); switchAuth(mode); }
+  function closeAuth()     { document.getElementById('auth-modal').classList.remove('open'); }
+  function switchAuth(mode) {
+    document.getElementById('login-form').style.display  = mode === 'login'  ? 'block' : 'none';
+    document.getElementById('signup-form').style.display = mode === 'signup' ? 'block' : 'none';
+  }
+
+  function setLoggedIn(email) {
+    authToken = localStorage.getItem('cc_token');
+    userEmail = email;
+    document.getElementById('nav-auth').style.display        = 'none';
+    document.getElementById('user-indicator').style.display  = 'flex';
+    document.getElementById('user-email-display').textContent = email;
+  }
+
+  function logout() {
+    authToken = userEmail = null;
+    localStorage.removeItem('cc_token');
+    localStorage.removeItem('cc_email');
+    document.getElementById('nav-auth').style.display       = 'flex';
+    document.getElementById('user-indicator').style.display = 'none';
+    showPage('landing');
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('login-email').value;
+    const pass  = document.getElementById('login-password').value;
+    const msgEl = document.getElementById('login-msg');
+    if (!email || !pass) { showMsg(msgEl, 'All fields required.', 'error'); return; }
+    showMsg(msgEl, '<span class="loader"></span>AUTHENTICATING...', 'success');
+    try {
+      const res  = await fetch(`${API_BASE}/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password:pass}) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
+      localStorage.setItem('cc_token', data.access_token);
+      localStorage.setItem('cc_email', email);
+      authToken = data.access_token;
+      setLoggedIn(email);
+      closeAuth();
+      showPage('clone');
+    } catch (e) { showMsg(msgEl, e.message, 'error'); }
+  }
+
+  async function doSignup() {
+    const name  = document.getElementById('signup-name').value;
+    const email = document.getElementById('signup-email').value;
+    const pass  = document.getElementById('signup-password').value;
+    const msgEl = document.getElementById('signup-msg');
+    if (!name || !email || !pass) { showMsg(msgEl, 'All fields required.', 'error'); return; }
+    showMsg(msgEl, '<span class="loader"></span>CREATING ACCOUNT...', 'success');
+    try {
+      const res  = await fetch(`${API_BASE}/signup`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password:pass, full_name:name}) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Signup failed');
+      showMsg(msgEl, '✓ Account created! Signing you in...', 'success');
+      setTimeout(() => { document.getElementById('login-email').value = email; document.getElementById('login-password').value = pass; switchAuth('login'); doLogin(); }, 1000);
+    } catch (e) { showMsg(msgEl, e.message, 'error'); }
+  }
+
+  // ===== UPLOAD BRIEFING =====
+  // FIX: This function was never closed in the original, causing checkStatus to be
+  // nested inside it and breaking ALL JavaScript on the page.
+  async function uploadBriefing() {
+    const text           = document.getElementById('briefing-text').value.trim();
+    const allowed_caller = document.getElementById('allowed-caller').value.trim();
+    const msgEl          = document.getElementById('clone-msg');
+    const btn            = document.getElementById('upload-btn');
+
+    if (!text || !allowed_caller) {
+      showMsg(msgEl, 'Please enter your briefing text and an allowed caller.', 'error');
+      return;
+    }
+    if (!authToken) { openAuth('login'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span>UPLOADING...';
+
+    try {
+      const res  = await fetch(`${API_BASE}/upload_briefing`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body:    JSON.stringify({ text, allowed_caller })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      showMsg(msgEl, '✓ Briefing uploaded successfully!', 'success');
+    } catch (e) {
+      showMsg(msgEl, e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'UPLOAD BRIEFING →';
+    }
+  }
+  // ^^^ function properly closed here — checkStatus can now be defined at top level ^^^
+
+  // ===== CHECK STATUS =====
+  async function checkStatus() {
+    const target   = document.getElementById('status-email').value.trim();
+    const resultEl = document.getElementById('status-result');
+    if (!target)    { resultEl.innerHTML = '<div class="msg error">Enter a target email address.</div>'; return; }
+    if (!authToken) { openAuth('login'); return; }
+
+    resultEl.innerHTML = `<div class="status-box"><div class="status-indicator checking"></div><div class="status-info"><div class="status-persona">Checking ${target}...</div><div class="status-time">Querying vector store</div></div></div>`;
+
+    try {
+      const res  = await fetch(`${API_BASE}/check_status?target_email=${encodeURIComponent(target)}`, { headers:{'Authorization':`Bearer ${authToken}`} });
+      const data = await res.json();
+
+      if (data.has_briefing) {
+        resultEl.innerHTML = `<div class="status-box" style="border-color:rgba(46,194,126,0.2)"><div class="status-indicator active"></div><div class="status-info"><div class="status-persona">${target}'s clone is READY</div><div class="status-time">Last briefed: ${data.last_updated || 'Unknown'}</div></div></div>`;
+        calleeEmail = target;
+        const initials = target.substring(0,2).toUpperCase();
+        document.getElementById('callee-avatar').textContent          = initials;
+        document.getElementById('callee-email-display').textContent   = target;
+        document.getElementById('caller-identity').textContent        = userEmail || '';
+        document.getElementById('voice-call-card').style.display      = 'block';
+        resetMicUI();
+        document.getElementById('audio-response').classList.remove('visible');
+        showMsg(document.getElementById('call-msg'), '', '');
+      } else {
+        resultEl.innerHTML = `<div class="status-box"><div class="status-indicator inactive"></div><div class="status-info"><div class="status-persona" style="color:var(--text-muted)">${target} has no briefings</div><div class="status-time">${data.message}</div></div></div>`;
+        document.getElementById('voice-call-card').style.display = 'none';
+      }
+    } catch (e) { resultEl.innerHTML = `<div class="msg error">Connection error: ${e.message}</div>`; }
+  }
+
+  // ===== MICROPHONE CONTROLS =====
+  async function toggleRecording() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startRecording();
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks   = [];
+
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = sendAudioToBackend;
+
+      mediaRecorder.start();
+      isRecording = true;
+
+      document.getElementById('mic-btn').classList.add('recording');
+      document.getElementById('mic-icon').style.display  = 'none';
+      document.getElementById('stop-icon').style.display = 'block';
+      document.getElementById('mic-label').textContent   = 'TAP TO STOP';
+      document.getElementById('mic-label').classList.add('recording');
+      document.getElementById('waveform').classList.add('visible');
+      document.getElementById('audio-response').classList.remove('visible');
+      showMsg(document.getElementById('call-msg'), '<span class="loader"></span>RECORDING... SPEAK NOW', 'success');
+    } catch (err) {
+      showMsg(document.getElementById('call-msg'), 'Microphone access denied. Check browser settings.', 'error');
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    }
+    isRecording = false;
+    document.getElementById('mic-btn').classList.remove('recording');
+    document.getElementById('mic-icon').style.display  = 'block';
+    document.getElementById('stop-icon').style.display = 'none';
+    document.getElementById('mic-label').textContent   = 'TAP TO SPEAK';
+    document.getElementById('mic-label').classList.remove('recording');
+    document.getElementById('waveform').classList.remove('visible');
+    showMsg(document.getElementById('call-msg'), '<span class="loader"></span>PROCESSING YOUR VOICE...', 'success');
+  }
+
+  function resetMicUI() {
+    isRecording = false;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(t => t.stop()); }
+    document.getElementById('mic-btn').classList.remove('recording');
+    document.getElementById('mic-icon').style.display  = 'block';
+    document.getElementById('stop-icon').style.display = 'none';
+    document.getElementById('mic-label').textContent   = 'TAP TO SPEAK';
+    document.getElementById('mic-label').classList.remove('recording');
+    document.getElementById('waveform').classList.remove('visible');
+  }
+
+  // ===== SEND AUDIO TO BACKEND =====
+  async function sendAudioToBackend() {
+    const blob     = new Blob(audioChunks, { type: 'audio/webm' });
+    const formData = new FormData();
+    formData.append('audio_file',   blob,        'recording.webm');
+    formData.append('target_email', calleeEmail);
+
+    audioUrl = null;
+    const msgEl = document.getElementById('call-msg');
+
+    try {
+      const res = await fetch(`${API_BASE}/voice_call`, {
+        method:  'POST',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        body: formData
+      });
+
+      if (!res.ok) throw new Error('Voice engine failed to process.');
+
+      const responseBlob = await res.blob();
+      audioUrl = URL.createObjectURL(responseBlob);
+
+      document.getElementById('audio-title').textContent  = `${calleeEmail}'s Clone`;
+      document.getElementById('audio-status').textContent = 'Tap play to hear response';
+      document.getElementById('audio-response').classList.add('visible');
+      showMsg(msgEl, '✓ Call connected!', 'success');
+
+      setTimeout(() => playAudio(), 100);
+    } catch (e) {
+      showMsg(msgEl, e.message, 'error');
+    }
+  }
+
+  function playAudio() {
+    if (!audioUrl) return;
+    if (audioPlayer) { audioPlayer.pause(); audioPlayer = null; }
+    audioPlayer = new Audio(audioUrl);
+    audioPlayer.play();
+    document.getElementById('audio-status').textContent = 'Playing...';
+    audioPlayer.onended = () => { document.getElementById('audio-status').textContent = 'Tap to replay'; };
+  }
+
+  function showMsg(el, text, type) {
+    if (!text) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  }
+</script>
+</body>
+</html>

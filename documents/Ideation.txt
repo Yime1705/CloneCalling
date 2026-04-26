@@ -1,0 +1,14 @@
+Project Proposal: CloneCalls
+A Secure, Asynchronous Digital-Twin Communication Platform
+
+1. Problem Statement
+Global connectivity is frequently hindered by significant time-zone latency. Traditional communication methods force a difficult choice: disrupt sleep cycles for live synchronous calls, or rely on static, non-interactive mediums like voicemails and text messages. This friction creates emotional distance and communication fatigue in close relationships.
+
+2. The Solution: CloneCalls
+CloneCalls introduces an interactive, asynchronous middle ground. It is an AI-driven VoIP platform that allows users to create a localized, secure "Digital Twin" trained daily on their recent life updates.
+
+The Sender: Records a secure "Daily Briefing" (voice or text) detailing their day.
+
+The Receiver: Initiates a standard VoIP call at their convenience. Instead of a voicemail, they interact with an authenticated voice clone of the sender.
+
+The Interaction: Powered by Retrieval-Augmented Generation (RAG), the clone converses naturally in real-time, answering questions strictly based on the sender's daily briefing context.
