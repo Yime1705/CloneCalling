@@ -22,9 +22,9 @@ def signup(user: UserSignup):
                 "id": auth_response.user.id,
                 "full_name": user.full_name
             }).execute()
-        return {"message": "User created securely!", "user_id": auth_response.user.id}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Signup failed: {str(e)}")
+        return {"message": "Account created successfully."}
+    except Exception:
+        raise HTTPException(status_code=400, detail="Signup failed. The email may already be in use.")
 
 @router.post("/login", tags=["Authentication"])
 def login(user: UserLogin):
@@ -157,10 +157,10 @@ def simulate_call(target_email: str, message: str, current_email: str = Depends(
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
     }
     
-    audio_response = requests.post(url, json=data, headers=headers)
+    audio_response = requests.post(url, json=data, headers=headers, timeout=30)
     if audio_response.status_code != 200:
-        return {"error": f"ElevenLabs failed: {audio_response.text}"}
-        
+        raise HTTPException(status_code=502, detail="Voice synthesis failed.")
+
     return StreamingResponse(io.BytesIO(audio_response.content), media_type="audio/mpeg")
 
 
@@ -170,8 +170,13 @@ async def voice_call(
     audio_file: UploadFile = File(...),
     current_email: str = Depends(get_current_user)
 ):
+    MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10 MB
+    audio_bytes = await audio_file.read(MAX_AUDIO_BYTES + 1)
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="Audio file too large (max 10 MB).")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
-        temp_audio.write(await audio_file.read())
+        temp_audio.write(audio_bytes)
         temp_audio_path = temp_audio.name
 
     try:
@@ -184,9 +189,6 @@ async def voice_call(
     finally:
         os.remove(temp_audio_path)
 
-    print("\n" + "="*50)
-    print(f"🎤 {current_email} SPOKE: '{message}'")
-    
     message_vector = get_embedding(message) 
     
     # --- UPDATED FILTERING LOGIC HERE ---
@@ -227,8 +229,6 @@ async def voice_call(
     )
     
     ai_text_answer = gpt_response.choices[0].message.content
-    print(f"🧠 CLONE SAID: {ai_text_answer}")
-    print("="*50 + "\n")
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
     headers = {
@@ -242,8 +242,8 @@ async def voice_call(
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
     }
     
-    audio_response = requests.post(url, json=data, headers=headers)
+    audio_response = requests.post(url, json=data, headers=headers, timeout=30)
     if audio_response.status_code != 200:
-        return {"error": f"ElevenLabs failed: {audio_response.text}"}
-        
+        raise HTTPException(status_code=502, detail="Voice synthesis failed.")
+
     return StreamingResponse(io.BytesIO(audio_response.content), media_type="audio/mpeg")

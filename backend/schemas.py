@@ -12,6 +12,3 @@ class UserLogin(BaseModel):
 class DailyBriefing(BaseModel):
     text: str = Field(..., min_length=5, max_length=1000)
     allowed_caller: EmailStr
-
-class AudioRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=500)
