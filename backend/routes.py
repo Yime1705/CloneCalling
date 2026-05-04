@@ -4,7 +4,7 @@ import uuid
 import requests
 import io
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, Query
 from fastapi.responses import StreamingResponse
 
 from schemas import UserSignup, UserLogin, DailyBriefing
@@ -71,7 +71,10 @@ def upload_briefing(briefing: DailyBriefing, current_email: str = Depends(get_cu
     }
 
 @router.get("/check_status", tags=["Call Routing"])
-def check_status(target_email: str, current_email: str = Depends(get_current_user)):
+def check_status(
+    target_email: str = Query(..., pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
+    current_email: str = Depends(get_current_user)
+):
     search_vector = get_embedding("latest status update")
     
     # 1. Get today's date
@@ -106,7 +109,11 @@ def check_status(target_email: str, current_email: str = Depends(get_current_use
     }
 
 @router.get("/simulate_call", tags=["Call Routing (Text)"])
-def simulate_call(target_email: str, message: str, current_email: str = Depends(get_current_user)):
+def simulate_call(
+    target_email: str = Query(..., pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
+    message: str = Query(..., min_length=1, max_length=500),
+    current_email: str = Depends(get_current_user)
+):
     message_vector = get_embedding(message) 
     search_results = index.query(
         vector=message_vector,
@@ -172,6 +179,8 @@ async def voice_call(
 ):
     MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10 MB
     audio_bytes = await audio_file.read(MAX_AUDIO_BYTES + 1)
+    if len(audio_bytes) == 0:
+        raise HTTPException(status_code=422, detail="Audio file is empty.")
     if len(audio_bytes) > MAX_AUDIO_BYTES:
         raise HTTPException(status_code=413, detail="Audio file too large (max 10 MB).")
 
