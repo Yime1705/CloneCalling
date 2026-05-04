@@ -15,8 +15,8 @@ import json
 BASE = "http://127.0.0.1:8000"
 
 # ── Fill these in with a real account you created via the frontend ──
-REAL_EMAIL    = "your_email@example.com"
-REAL_PASSWORD = "your_password"
+REAL_EMAIL    = "yashfafatima717@gmail.com"
+REAL_PASSWORD = "Muhammadsas786"
 # ───────────────────────────────────────────────────────────────────
 
 PASS = "\033[92mPASS\033[0m"

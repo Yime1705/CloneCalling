@@ -1,9 +1,12 @@
 import os
+import re
 import tempfile
 import uuid
 import requests
 import io
 from datetime import datetime
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, Query
 from fastapi.responses import StreamingResponse
 
@@ -177,6 +180,9 @@ async def voice_call(
     audio_file: UploadFile = File(...),
     current_email: str = Depends(get_current_user)
 ):
+    if not _EMAIL_RE.match(target_email):
+        raise HTTPException(status_code=422, detail="Invalid target_email format.")
+
     MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10 MB
     audio_bytes = await audio_file.read(MAX_AUDIO_BYTES + 1)
     if len(audio_bytes) == 0:
