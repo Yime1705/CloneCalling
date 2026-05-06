@@ -4,8 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CloneCalls — Your AI Clone Picks Up</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Security headers as meta tags (backend headers take precedence; these cover the frontend) -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="no-referrer">
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'self';
+           script-src 'self' 'unsafe-inline';
+           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+           font-src https://fonts.gstatic.com;
+           connect-src http://127.0.0.1:8000;
+           img-src 'self' data:;
+           frame-ancestors 'none';">
+<!-- crossorigin added for Sub-Resource Integrity compliance on external fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" crossorigin>
 <style>
   :root {
     --bg: #0b0a07;
@@ -780,7 +793,7 @@ let userEmail = null;
     const pass  = document.getElementById('login-password').value;
     const msgEl = document.getElementById('login-msg');
     if (!email || !pass) { showMsg(msgEl, 'All fields required.', 'error'); return; }
-    showMsg(msgEl, '<span class="loader"></span>AUTHENTICATING...', 'success');
+    showMsgHTML(msgEl, '<span class="loader"></span>AUTHENTICATING...', 'success');
     try {
       const res  = await fetch(`${API_BASE}/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password:pass}) });
       const data = await res.json();
@@ -800,7 +813,7 @@ let userEmail = null;
     const pass  = document.getElementById('signup-password').value;
     const msgEl = document.getElementById('signup-msg');
     if (!name || !email || !pass) { showMsg(msgEl, 'All fields required.', 'error'); return; }
-    showMsg(msgEl, '<span class="loader"></span>CREATING ACCOUNT...', 'success');
+    showMsgHTML(msgEl, '<span class="loader"></span>CREATING ACCOUNT...', 'success');
     try {
       const res  = await fetch(`${API_BASE}/signup`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password:pass, full_name:name}) });
       const data = await res.json();
@@ -905,7 +918,7 @@ let userEmail = null;
       document.getElementById('mic-label').classList.add('recording');
       document.getElementById('waveform').classList.add('visible');
       document.getElementById('audio-response').classList.remove('visible');
-      showMsg(document.getElementById('call-msg'), '<span class="loader"></span>RECORDING... SPEAK NOW', 'success');
+      showMsgHTML(document.getElementById('call-msg'), '<span class="loader"></span>RECORDING... SPEAK NOW', 'success');
     } catch (err) {
       showMsg(document.getElementById('call-msg'), 'Microphone access denied. Check browser settings.', 'error');
     }
@@ -923,7 +936,7 @@ let userEmail = null;
     document.getElementById('mic-label').textContent   = 'TAP TO SPEAK';
     document.getElementById('mic-label').classList.remove('recording');
     document.getElementById('waveform').classList.remove('visible');
-    showMsg(document.getElementById('call-msg'), '<span class="loader"></span>PROCESSING YOUR VOICE...', 'success');
+    showMsgHTML(document.getElementById('call-msg'), '<span class="loader"></span>PROCESSING YOUR VOICE...', 'success');
   }
 
   function resetMicUI() {
@@ -989,9 +1002,19 @@ let userEmail = null;
     btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
   }
 
+  // showMsg: safe path — uses textContent so user-controlled strings cannot inject HTML
   function showMsg(el, text, type) {
     if (!text) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+    const div = document.createElement('div');
+    div.className = `msg ${type}`;
+    div.textContent = text;
+    el.replaceChildren(div);
+  }
+
+  // showMsgHTML: only called with hardcoded internal HTML (loader spinner), never with user input
+  function showMsgHTML(el, html, type) {
+    if (!html) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="msg ${type}">${html}</div>`;
   }
 
   // Restore session on page load

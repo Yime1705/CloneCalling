@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "CloneCall Security Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "1a. Valid Login → 200 + token",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns access_token', () => { const j = pm.response.json(); pm.expect(j.access_token).to.be.a('string'); pm.collectionVariables.set('token', j.access_token); });"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"YOUR_EMAIL\",\"password\":\"YOUR_PASSWORD\"}" }
+          }
+        },
+        {
+          "name": "1b. Wrong Password → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+            "pm.test('Generic error message', () => { const d = pm.response.json().detail.toLowerCase(); pm.expect(d).to.include('invalid email or password'); });"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"YOUR_EMAIL\",\"password\":\"wrongpassword99\"}" }
+          }
+        },
+        {
+          "name": "1c. No Token → 403",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/upload_briefing",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"text\":\"hello world test\",\"allowed_caller\":\"a@b.com\"}" }
+          }
+        },
+        {
+          "name": "1d. Forged Token → 401",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/upload_briefing",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer fake.token.value" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"text\":\"hello world test\",\"allowed_caller\":\"a@b.com\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Input Validation",
+      "item": [
+        {
+          "name": "2a. Password Too Short → 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 422', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/signup",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"new@test.com\",\"password\":\"abc\",\"full_name\":\"Test User\"}" }
+          }
+        },
+        {
+          "name": "2b. Invalid Email Format → 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 422', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/signup",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"notanemail\",\"password\":\"validpass123\",\"full_name\":\"Test\"}" }
+          }
+        },
+        {
+          "name": "2c. Briefing Text Too Short → 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 422', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/upload_briefing",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"text\":\"Hi\",\"allowed_caller\":\"a@b.com\"}" }
+          }
+        },
+        {
+          "name": "2d. Briefing Text Too Long → 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 422', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/upload_briefing",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"text\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"allowed_caller\":\"a@b.com\"}" }
+          }
+        },
+        {
+          "name": "2e. Invalid allowed_caller Email → 422",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 422', () => pm.response.to.have.status(422));"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/upload_briefing",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"text\":\"Valid briefing text here\",\"allowed_caller\":\"notanemail\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. PII Scrubbing",
+      "item": [
+        {
+          "name": "3a. SSN + Card + Phone Redacted in Response",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "pm.test('SSN redacted', () => { const t = pm.response.json().sanitized_text; pm.expect(t).to.include('[REDACTED SSN]'); });",
+            "pm.test('Credit card redacted', () => { const t = pm.response.json().sanitized_text; pm.expect(t).to.include('[REDACTED CREDIT CARD]'); });",
+            "pm.test('Phone redacted', () => { const t = pm.response.json().sanitized_text; pm.expect(t).to.include('[REDACTED PHONE NUMBER]'); });",
+            "pm.test('Raw SSN not in stored text', () => { const t = pm.response.json().sanitized_text; pm.expect(t).to.not.include('123-45-6789'); });"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/upload_briefing",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"text\":\"SSN 123-45-6789 card 4111111111111111 phone 555-867-5309\",\"allowed_caller\":\"YOUR_EMAIL\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Information Disclosure",
+      "item": [
+        {
+          "name": "4a. Swagger UI Disabled → 404",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Docs disabled (404)', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{base}}/docs" }
+        },
+        {
+          "name": "4b. ReDoc Disabled → 404",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('ReDoc disabled (404)', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{base}}/redoc" }
+        },
+        {
+          "name": "4c. Health Check Returns Only status:ok",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "pm.test('Only returns status field', () => { const j = pm.response.json(); pm.expect(Object.keys(j)).to.deep.equal(['status']); });",
+            "pm.test('Value is ok', () => pm.expect(pm.response.json().status).to.equal('ok'));"
+          ]}}],
+          "request": { "method": "GET", "url": "{{base}}/" }
+        },
+        {
+          "name": "4d. Signup Error Is Generic",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+            "pm.test('Error does not confirm email exists', () => { const d = pm.response.json().detail.toLowerCase(); pm.expect(d).to.include('signup failed'); });"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base}}/signup",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"YOUR_EMAIL\",\"password\":\"testpass123\",\"full_name\":\"Test\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. CORS",
+      "item": [
+        {
+          "name": "5a. Allowed Origin Gets CORS Header",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('CORS header present for allowed origin', () => { pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.equal('http://127.0.0.1:5501'); });"
+          ]}}],
+          "request": { "method": "OPTIONS", "url": "{{base}}/login",
+            "header": [
+              { "key": "Origin", "value": "http://127.0.0.1:5501" },
+              { "key": "Access-Control-Request-Method", "value": "POST" }
+            ]
+          }
+        },
+        {
+          "name": "5b. Evil Origin Gets No CORS Header",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('CORS header absent for evil origin', () => { const h = pm.response.headers.get('Access-Control-Allow-Origin'); pm.expect(h).to.not.equal('http://evil.com'); });"
+          ]}}],
+          "request": { "method": "OPTIONS", "url": "{{base}}/login",
+            "header": [
+              { "key": "Origin", "value": "http://evil.com" },
+              { "key": "Access-Control-Request-Method", "value": "POST" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
