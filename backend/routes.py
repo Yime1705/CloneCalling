@@ -7,8 +7,9 @@ import io
 from datetime import datetime
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, Query
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, Query, Request
 from fastapi.responses import StreamingResponse
+from limiter import limiter
 
 from schemas import UserSignup, UserLogin, DailyBriefing
 from security import get_current_user, scrub_pii, get_embedding
@@ -30,7 +31,8 @@ def signup(user: UserSignup):
         raise HTTPException(status_code=400, detail="Signup failed. The email may already be in use.")
 
 @router.post("/login", tags=["Authentication"])
-def login(user: UserLogin):
+@limiter.limit("5/minute")
+def login(request: Request, user: UserLogin):
     try:
         auth_response = supabase.auth.sign_in_with_password({"email": user.email, "password": user.password})
         return {
@@ -80,13 +82,13 @@ def check_status(
 ):
     search_vector = get_embedding("latest status update")
     
-    # 1. Get today's date
+ 
     current_date = datetime.now().strftime("%Y-%m-%d")
     
-    # 2. Update the query to include the new filters
+  
     search_results = index.query(
         vector=search_vector,
-        top_k=1,  # Keep this at 1 for check_status
+        top_k=1, 
         include_metadata=True,
         filter={
             "owner": target_email.lower(),
@@ -183,7 +185,7 @@ async def voice_call(
     if not _EMAIL_RE.match(target_email):
         raise HTTPException(status_code=422, detail="Invalid target_email format.")
 
-    MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10 MB
+    MAX_AUDIO_BYTES = 10 * 1024 * 1024  
     audio_bytes = await audio_file.read(MAX_AUDIO_BYTES + 1)
     if len(audio_bytes) == 0:
         raise HTTPException(status_code=422, detail="Audio file is empty.")
